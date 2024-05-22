@@ -1,6 +1,8 @@
 import socket
 import requests
 import threading
+import redis
+import db_connection
 
 def handle_client_request(client_socket):
     print("Received request:\n")
@@ -77,6 +79,7 @@ def start_proxy_server():
     server.bind(('127.0.0.1', port))
 
     server.listen(10)
+    redis_connection = db_connection.db_connection()
 
     print(f"Proxy server listening on port {port}...")
 
