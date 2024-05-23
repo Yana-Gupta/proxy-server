@@ -1,10 +1,9 @@
 import socket
 import requests
 import threading
-import redis
 import db_connection
 
-def handle_client_request(client_socket):
+def handle_client_request(client_socket, redis):
     print("Received request:\n")
 
     request = b''
@@ -20,24 +19,35 @@ def handle_client_request(client_socket):
             break
 
     url = extract_url_from_request(request)
+    
+    if url is not None and redis.exists(url):
+        value = redis.get(url)
+        try:
+            print("Try to send data to client after fetching redis here")
+            response = "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}".format(len(value), value)
+            print(response)
+            print("Try to send data to client after fetching redis here")
+            client_socket.sendall(response.encode('utf-8'))
+        except Exception as e:
+            print("There is an exception")
+            print(e)
 
-    if url is not None:
-        print("The url is", url)
-        status_code, response_data = send_request_to_url(url=url)
-        if status_code == 200 and response_data is not None:
-            data_bytes = response_data.encode('utf-8')
-            try:
-                print("Try to send data to client after fetching")
-                print(data_bytes)
-                response = "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}".format(len(data_bytes), data_bytes.decode('utf-8'))
-                print(response)
-                client_socket.sendall(response.encode('utf-8'))
+    else:
+        if url is not None:
+            print("The url is", url)
+            status_code, response_data = send_request_to_url(url=url)
+            if status_code == 200 and response_data is not None:
+                data_bytes = response_data.encode('utf-8')
+                redis.setex(url, 21600, data_bytes)
+                try:
+                    response = "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}".format(len(data_bytes), data_bytes.decode('utf-8'))
+                    client_socket.sendall(response.encode('utf-8'))
 
-            except Exception as e:
-                print("There is an exception")
-                print(e)
-            
-
+                except Exception as e:
+                    print("There is an exception")
+                    print(e)
+        
+                    
     client_socket.close()
     print("Received request:\n")
 
@@ -89,7 +99,7 @@ def start_proxy_server():
 
         print(f"Accepted connection from {addr[0]}:{addr[1]}")
 
-        client_handler = threading.Thread(target=handle_client_request, args=(client_socket,))
+        client_handler = threading.Thread(target=handle_client_request, args=(client_socket, redis_connection))
 
         client_handler.start()
 
