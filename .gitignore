@@ -1,2 +1,11 @@
 env/
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+
+**/___pycache__
+**/migrations
+
+rest.htttp
