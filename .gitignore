@@ -8,4 +8,7 @@ __pycache__/
 **/___pycache__
 **/migrations
 
-rest.htttp
+rest.http
+
+server.crt
+server.key
